@@ -15,7 +15,6 @@
 //            the results, back to the title, then the phone lobby. Every step is checked.
 //   moves    (0 CPUs) a phone player works through the moves against an idle phone: every stick direction gives its
 //            own attack on the ground and in the air, pushing up jumps, hits link into combos, aerials chain
-//   music    plays nothing; checks the soundtrack's harmony instead (see checkHarmony at the end)
 //   stage=ID, hazards, set=KEY:VALUE,...  pick the stage, check the stage events, override settings
 // KO_JSON=1 also prints every KO as [fighter, selfDestruct] (for balance checks across seeds).
 import { execFile, execFileSync } from 'node:child_process';
@@ -163,10 +162,6 @@ g.clearTimeout = noop;
 g.setInterval = noop;
 
 await import(pathToFileURL(path.join(ROOT, 'main.js')).href);
-if (flags.includes('music')) {
-  const { TRACKS } = await import(pathToFileURL(path.join(ROOT, 'sound.js')).href);
-  process.exit(checkHarmony(TRACKS) ? 0 : 1);
-}
 
 const K = window.__ko;
 const fails = [];
@@ -893,56 +888,6 @@ if (fails.length) {
   process.exit(1);
 }
 
-// The harmony check (`music`)
-
-function checkHarmony(TRACKS) {
-  const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-  const NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
-  const STEPS_PER_BAR = 16;
-  // 'F#4' or 'Bb3' as a pitch class: 0 for C up to 11 for B, whatever the octave.
-  function pitchClass(note) {
-    let pitch = NOTE[note[0]];
-    if (note[1] === '#') pitch += 1;
-    if (note[1] === 'b') pitch -= 1;
-    return (pitch + 12) % 12;
-  }
-  const semitonesUp = (from, to) => (to - from + 12) % 12;
-  // Tensions that sit a whole step from a chord tone: the 9th, 11th and 13th.
-  const TENSIONS = [2, 5, 9];
-
-  let bad = 0;
-  for (const [name, track] of Object.entries(TRACKS)) {
-    for (const part of ['lead', 'counter']) {
-      const notes = track[part] && track[part].notes;
-      if (!notes) continue;
-      const total = track.bars * STEPS_PER_BAR;
-      for (let step = 0; step < total; step++) {
-        const note = notes[step % notes.length];
-        if (note === '.' || note === '-') continue; // a rest, or the note before still sounding
-        let held = 1;
-        while (notes[(step + held) % notes.length] === '-' && held < STEPS_PER_BAR) held++;
-        const strong = step % 4 === 0 || held >= 3;
-        if (!strong) continue;
-
-        const bar = Math.floor(step / STEPS_PER_BAR);
-        const chord = track.chords[bar % track.chords.length].map((midi) => midi % 12);
-        const pitch = pitchClass(note);
-        if (chord.includes(pitch)) continue;
-        const aboveRoot = semitonesUp(chord[0], pitch);
-        const clash = chord.some((tone) => semitonesUp(tone, pitch) === 1 || semitonesUp(pitch, tone) === 1);
-        if (clash || !TENSIONS.includes(aboveRoot)) {
-          bad++;
-          const over = chord.map((tone) => NAMES[tone]).join('-');
-          const why = (clash ? ' (semitone clash)' : '') + (held >= 3 ? ` held ${held}` : '');
-          console.log(`${name}.${part} step ${step} (bar ${bar + 1}): ${note} over ${over}${why}`);
-        }
-      }
-    }
-  }
-  console.log(bad ? `${bad} questionable notes` : 'harmony ok');
-  return !bad;
-}
-
 // Everything at once
 
 // Each run is a separate process: the game keeps its state in module globals.
@@ -950,7 +895,7 @@ async function runAll() {
   // prettier-ignore
   const RUNS = [
     '4 240 7', '2 240 3 phone', '8 200 5', '3 150 2 stage=peaks', '4 300 9 stage=mesa hazards', '6 200 4 sudden',
-    '1 200 6 keys', '0 120 5 pad', '0 70 1 moves', '0 0 1 music',
+    '1 200 6 keys', '0 120 5 pad', '0 70 1 moves',
   ];
   const REPLAY = '5 150 21 stage=peaks'; // run twice: it must play out exactly the same both times
   const me = fileURLToPath(import.meta.url);

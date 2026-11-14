@@ -5,7 +5,9 @@ phone turns into the controller. No app, 2 to 40 players. You can also play it o
 controllers, against each other or the CPU.
 
 Seven fighters, three stages, items, stage events (wind, tumbleweeds, snowballs), in a paper cut-out style. The art is
-a set of sprite sheets; the sound and music are synthesised in code, so there are no audio files.
+a set of sprite sheets and the sound effects are synthesised in code. The music is a shuffled playlist of
+phonk tracks, the mp3s in `public/assets/music/` (not in the repo: drop your own in), and it speeds up as a match heats
+up.
 
 ## Run it
 
@@ -61,10 +63,10 @@ public/
   draw.js            the canvas: picks sprites off the sheets and composes each frame
   ui.js              HUD, pause menu, title and keyboard fighter select
   input.js           keyboard, controllers, and phones through the relay
-  sound.js           sound effects, the soundtrack, controller rumble
+  sound.js           sound effects, the music, controller rumble
   roster.js          the fighters (shared with the phone)
   play.html          the phone (phone.css, phone.js)
-  assets/            sprite sheets and sprites.json (where each frame sits), fonts, icons
+  assets/            sprite sheets and sprites.json (where each frame sits), fonts, icons, music/
 ```
 
 Formatted with Prettier (`npm run format`).
@@ -73,7 +75,7 @@ Formatted with Prettier (`npm run format`).
 
 `npm test` runs the real game code headless with a fake clock: seeded CPU matches on every stage, a phone joining and
 readying up, sudden death, keyboard mode, a 143-step walkthrough of the whole game on a fake controller, and a script
-that checks every move and combo, plus a harmony check on the soundtrack. Same seed, same match, so it doubles as a
+that checks every move and combo. Same seed, same match, so it doubles as a
 regression test. `node test.js 4 240 7` plays a single headless game (4 CPUs, 240 s, seed 7); the flags are listed at
 the top of test.js.
 

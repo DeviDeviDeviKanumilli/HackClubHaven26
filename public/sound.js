@@ -50,6 +50,7 @@ function build() {
   const white = noiseBuf.getChannelData(0);
   for (let i = 0; i < white.length; i++) white[i] = Math.random() * 2 - 1;
   setVolumes();
+  startMusic();
 }
 
 // Starts (or resumes) sound. Browsers only allow this from a key press or click.
@@ -165,6 +166,7 @@ export const sfx = {
       osc(t, 'triangle', note, null, 0.14, bus.fx, 0.07);
     }
     const power = Math.min(1, Math.max(0.1, knockback / 1200));
+    excite(0.06 + power * 0.2); // the music picks up with the fighting
     const out = wet(bus.fx, 0.15 + power * 0.2);
     osc(t, 'sine', 190 - power * 80, 40, 0.12 + power * 0.22, out, 0.5 + power * 0.4);
     noise(t, 0.05 + power * 0.1, out, 0.5 + power * 0.4, 'bandpass', 2600 - power * 1400, 0.8, 600);
@@ -273,6 +275,7 @@ export const sfx = {
     noise(t + 0.05, 0.4, out, 0.12, 'bandpass', 600, 2, 5000);
     cheer(t + 0.12, 1.4, 0.16);
     duck(0.35, 0.5, 1.2);
+    excite(1);
   }),
   pick: fx((t) => {
     const out = wet(bus.fx, 0.3);
@@ -487,380 +490,145 @@ export function rumble(id, kind) {
   }
 }
 
-// The soundtrack: original, procedurally played tunes on a lookahead scheduler (16th-note steps).
-// Each stage has its own battle theme; the lobby and the results screen have calmer ones. Layers fade in with
-// the action (drums at "play", the counter-melody once fighters are near the edge), and sudden death speeds up.
-
-// Note names to MIDI numbers: 'C4' = 60, 'F#4' = 66, 'Bb3' = 58.
-const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-const SHARP_FLAT = { '#': 1, b: -1 };
-function midi(name) {
-  const octave = Number(name.at(-1));
-  return 12 * (octave + 1) + NOTE[name[0]] + (SHARP_FLAT[name[1]] || 0);
-}
-const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
-// Melodies and patterns are written one 16th step per word: a note, '.' (rest) or '-' (hold the note before).
-const seq = (s) => s.trim().split(/\s+/);
-
-// Chords as [root, third, fifth, seventh] in MIDI; one per bar.
-const ch = (s) => s.split(' ').map((c) => c.split(',').map(midi));
-
-// The tracks. Exported for the harmony check (node test.js 0 0 1 music).
-export const TRACKS = {
-  // lobby: a lazy, swung paper-toy shuffle
-  lobby: {
-    bpm: 96,
-    swing: 0.18,
-    bars: 4,
-    chords: ch('F3,A3,C4,E4 D3,F3,A3,C4 G3,Bb3,D4,F4 C3,E3,G3,Bb3'),
-    lead: {
-      wave: 'triangle',
-      vol: 0.09,
-      oct: 0,
-      notes: seq(`
-      A4 - C5 - A4 G4 F4 - . . C4 - F4 - A4 -   . . D5 - C5 A4 F4 - D4 - - - . . . .
-      Bb4 - D5 - Bb4 A4 G4 - . . D4 - G4 - Bb4 -  Bb4 - G4 - E4 - C4 - . . G4 - - - . .`),
-    },
-    bass: 'r . . . 5 . . . r . 5 . r . . .',
-    drums: {
-      k: 'x . . . . . . . x . . . . . . .',
-      s: '. . . . x . . . . . . . x . . .',
-      h: 'x . x . x . x . x . x . x . x x',
-    },
-    keys: 'stab',
-    pad: 0.03,
-  },
-  // Meadow Hollow: bright, bouncy, major
-  meadow: {
-    bpm: 132,
-    swing: 0.08,
-    bars: 8,
-    chords: ch(
-      'C3,E3,G3,B3 A2,C3,E3,G3 F2,A2,C3,E3 G2,B2,D3,F3 C3,E3,G3,B3 E2,G#2,B2,D3 A2,C3,E3,G3 G2,B2,D3,F3',
-    ),
-    lead: {
-      wave: 'square',
-      vol: 0.05,
-      oct: 0,
-      notes: seq(`
-      E5 - G5 - C6 - B5 A5 G5 - E5 - . . D5 E5   C5 - E5 - A5 - G5 E5 C5 - - - . . . .
-      F5 - A5 - C6 - A5 - G5 F5 E5 - D5 - C5 -    B4 - D5 - G5 - F5 E5 D5 - - - . . G4 -
-      E5 - G5 - C6 - B5 A5 G5 - E5 - . . D5 E5   E5 - G#5 - B5 - G#5 E5 D5 - B4 - . . . .
-      C5 - E5 - A5 - G5 F5 E5 D5 C5 B4 A4 - G4 -  B4 - D5 - G5 - - - F5 - D5 - B4 - G4 -`),
-    },
-    counter: {
-      wave: 'triangle',
-      vol: 0.06,
-      oct: 2,
-      rhythm: 'x . . . x . . . x . . . x . x .',
-      degs: [3, 2, 1, 2, 3, 1],
-    },
-    bass: 'r . r . 5 . r . r . r . 5 . 8 .',
-    drums: {
-      k: 'x . . . x . . . x . . . x . . x',
-      s: '. . . . x . . . . . . . x . . .',
-      h: '. . x . . . x . . . x . . . x x',
-    },
-    keys: 'arp',
-    pad: 0.025,
-  },
-  // Sunset Mesa: dusty desert stomp, mixolydian
-  mesa: {
-    bpm: 140,
-    swing: 0.05,
-    bars: 8,
-    chords: ch(
-      'D3,F#3,A3,C4 D3,F#3,A3,C4 C3,E3,G3,Bb3 G2,B2,D3,F3 D3,F#3,A3,C4 D3,F#3,A3,C4 Bb2,D3,F3,A3 A2,C#3,E3,G3',
-    ),
-    lead: {
-      wave: 'sawtooth',
-      vol: 0.035,
-      oct: 0,
-      notes: seq(`
-      D5 - - - A4 - D5 E5 F#5 - E5 D5 C5 - A4 -   D5 - - - . . A4 C5 D5 - - - . . . .
-      E5 - - - C5 - E5 G5 G5 - F5 E5 D5 - C5 -    B4 - D5 - G5 - F5 - D5 - B4 - G4 - - -
-      A5 - - - F#5 - D5 - F#5 - A5 G5 F#5 - C5 -   D5 - E5 - F#5 - A5 - D6 - - - . . . .
-      F5 - - - D5 - F5 A5 G5 - F5 D5 Bb4 - - -    A4 - C#5 - E5 - G5 - A5 - - - E5 - C#5 -`),
-    },
-    counter: {
-      wave: 'triangle',
-      vol: 0.06,
-      oct: 2,
-      rhythm: 'x . x . . . x . x . . . x . x .',
-      degs: [2, 2, 1, 2, 3, 1],
-    },
-    bass: 'r . r r . . 5 . r . r r . . 7 .',
-    drums: {
-      k: 'x . . x . . x . x . . x . . x .',
-      s: '. . . . x . . . . . . . x . x .',
-      h: 'x x x x x x x x x x x x x x x x',
-    },
-    keys: 'stab',
-    pad: 0.02,
-  },
-  // Snowfold Peaks: a music-box waltz-feel in E minor, glassy and light
-  peaks: {
-    bpm: 124,
-    swing: 0.1,
-    bars: 8,
-    chords: ch(
-      'E3,G3,B3,D4 C3,E3,G3,B3 G2,B2,D3,F#3 D3,F#3,A3,C4 E3,G3,B3,D4 A2,C3,E3,G3 C3,E3,G3,B3 B2,D#3,F#3,A3',
-    ),
-    lead: {
-      wave: 'triangle',
-      vol: 0.1,
-      oct: 0,
-      notes: seq(`
-      E5 - G5 - B5 - - A5 G5 - F#5 - E5 - D5 -    E5 - - - G5 - E5 - C5 - - - B4 - C5 -
-      D5 - B4 - G4 - B4 - D5 - - - F#5 - G5 -    A5 - - - F#5 - D5 - A4 - - - . . . .
-      E5 - G5 - B5 - - A5 G5 - F#5 - E5 - G5 -   A5 - - - E5 - C5 - E5 - - - A4 - C5 -
-      B4 - C5 - E5 - G5 - - - E5 - C5 - B4 -     D#5 - - - F#5 - B5 - A5 - - - F#5 - D#5 -`),
-    },
-    counter: {
-      wave: 'sine',
-      vol: 0.07,
-      oct: 3,
-      rhythm: 'x . . x . . x . . x . . x . . .',
-      degs: [1, 2, 3, 2],
-    },
-    bass: 'r . . . 5 . . . r . . . 5 . 3 .',
-    drums: {
-      k: 'x . . . . . . . x . . . . . . .',
-      s: '. . . . x . . . . . . . x . . .',
-      h: '. . x . . . x . . . x . . . x .',
-    },
-    keys: 'arp',
-    pad: 0.03,
-  },
-  // results: a short, bright fanfare loop
-  results: {
-    bpm: 108,
-    swing: 0.1,
-    bars: 4,
-    chords: ch('C3,E3,G3,B3 F3,A3,C4,E4 D3,F3,A3,C4 G2,B2,D3,F3'),
-    lead: {
-      wave: 'triangle',
-      vol: 0.09,
-      oct: 0,
-      notes: seq(`
-      G4 - C5 - E5 - G5 - - - E5 - G5 - A5 -   A5 - G5 - F5 - E5 - - - C5 - . . . .
-      F5 - - - D5 - A4 - - - C5 - D5 - F5 -   D5 - - - . . B4 - - - G4 - - - . .`),
-    },
-    bass: 'r . . . 5 . . . r . . . 5 . 8 .',
-    drums: {
-      k: 'x . . . . . . . x . . . . . . .',
-      s: '. . . . x . . . . . . . x . . .',
-      h: 'x . x . x . x . x . x . x . x .',
-    },
-    keys: 'arp',
-    pad: 0.035,
-  },
-};
-
-// The player. `song` is the tune playing now: which step it is on, how many times it has looped and when the next
-// step is due.
-const LOOKAHEAD = 0.12; // seconds of music scheduled ahead
-const song = {
-  track: null,
-  name: '',
-  step: 0,
-  loop: 0,
-  next: 0,
-  layers: { drums: 0, counter: 0 }, // how loud the drums and the counter-melody play, 0 to 1
+// The soundtrack: a playlist of phonk tracks, the mp3s in public/assets/music/ (the server lists them at /music). They
+// play one after another in a shuffled order, and every match starts on a fresh one. The music follows the match: in
+// the lobby it plays a touch slow and muffled, the 3-2-1 countdown opens it up, and in a match it speeds up (pitching
+// up, sped-up style) as the fighting heats up, fastest in sudden death. With no tracks the game plays without music.
+const MUSIC_TRIM = 0.5; // the tracks are levelled to -14 LUFS; this sits them under the sound effects
+const FASTEST = 1.22; // the speed at the height of a match
+const SUDDEN_DEATH = 1.3;
+const CROSSFADE = 1; // seconds
+// list: the track files; order: the shuffled play order; at: where we are in it; src: the track playing;
+// loads: decoding tracks by file (only the current and the next are kept)
+const music = {
+  list: [],
+  order: [],
+  at: -1,
+  src: null,
+  tone: null,
   rate: 1,
-  gain: null, // this tune's own fader, so the next one can fade in over it
+  cutoff: 0,
+  turn: 0,
+  loads: new Map(),
+  state: '', // the game state last frame, to catch the start of a countdown
 };
-const steps = (track) => track.bars * 16;
 
-// Which tune fits the game right now.
-function tuneForNow() {
-  if (G.state === 'result') return 'results';
-  if (G.state === 'play' || G.state === 'countdown') return G.stageId;
-  return 'lobby';
+// Fetches the list and starts the first track. Called once sound is allowed.
+async function startMusic() {
+  try {
+    music.list = await (await fetch('/music')).json();
+  } catch {
+    return;
+  }
+  if (!music.list.length) return;
+  music.order = music.list.map((_, i) => i);
+  for (let i = music.order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [music.order[i], music.order[j]] = [music.order[j], music.order[i]];
+  }
+  music.tone = ac.createBiquadFilter();
+  music.tone.type = 'lowpass';
+  music.tone.frequency.value = 1500;
+  const trim = ac.createGain();
+  trim.gain.value = MUSIC_TRIM;
+  music.tone.connect(trim).connect(bus.music);
+  nextTrack();
+}
+
+// The decoded track at place `at` in the play order (a promise), loading it if it isn't already.
+function load(at) {
+  const file = music.list[music.order[at % music.order.length]];
+  if (!music.loads.has(file)) {
+    const decoding = fetch('/assets/music/' + encodeURIComponent(file))
+      .then((res) => res.arrayBuffer())
+      .then((data) => ac.decodeAudioData(data));
+    music.loads.set(file, decoding);
+  }
+  return music.loads.get(file);
+}
+
+// Crossfades to the next track in the order, and starts loading the one after it.
+async function nextTrack(failures = 0) {
+  const turn = ++music.turn; // a newer call wins if two overlap
+  music.at = (music.at + 1) % music.order.length;
+  let buffer;
+  try {
+    buffer = await load(music.at);
+  } catch {
+    if (turn === music.turn && failures < music.order.length) nextTrack(failures + 1); // unreadable: skip it
+    return;
+  }
+  if (turn !== music.turn) return;
+  const t = ac.currentTime;
+  if (music.src) {
+    const old = music.src;
+    old.fade.gain.setTargetAtTime(0.0001, t, CROSSFADE / 4);
+    old.stop(t + CROSSFADE * 1.5);
+  }
+  const src = ac.createBufferSource();
+  src.buffer = buffer;
+  src.playbackRate.value = music.rate;
+  src.fade = ac.createGain();
+  src.fade.gain.setValueAtTime(0.0001, t);
+  src.fade.gain.setTargetAtTime(1, t, CROSSFADE / 4);
+  src.connect(src.fade).connect(music.tone);
+  src.onended = () => {
+    if (music.src === src) nextTrack(); // it played to the end
+  };
+  src.start(t);
+  music.src = src;
+  // keep only this track and the next one decoded (they're big)
+  const keep = [music.at, music.at + 1].map((at) => music.list[music.order[at % music.order.length]]);
+  for (const file of music.loads.keys()) if (!keep.includes(file)) music.loads.delete(file);
+  load(music.at + 1).catch(() => {});
+}
+
+// How hard the match is going, 0..1. `action` jumps with every hit and KO and fades over a few seconds; `energy`
+// follows the game's heat or the action, whichever is higher, rising quickly and settling slowly.
+const mood = { energy: 0, action: 0, last: 0 };
+
+function feel(heat, t) {
+  const dt = Math.min(0.1, Math.max(0, t - mood.last));
+  mood.last = t;
+  mood.action *= Math.exp(-dt / 2.5);
+  let target = 0;
+  if (G.state === 'play') target = Math.max(heat, mood.action * 0.7);
+  const settle = target > mood.energy ? 0.5 : 4; // seconds
+  mood.energy += (target - mood.energy) * (1 - Math.exp(-dt / settle));
+}
+
+// Called by the hit and KO sounds.
+function excite(amount) {
+  mood.action = Math.min(1, mood.action + amount);
+}
+
+// The track's speed and filter for this moment: [playback rate, low-pass cutoff in Hz].
+function musicTarget() {
+  if (G.paused) return [music.rate, 700]; // muffled, holding its speed
+  if (G.state === 'countdown') return [1, 1500 * Math.pow(12, Math.min(1, G.stT / 3))]; // opens up to 18 kHz at GO
+  if (G.state === 'play') return [G.sudden ? SUDDEN_DEATH : 1 + (FASTEST - 1) * mood.energy, 20000];
+  if (G.state === 'result') return [1, 20000];
+  return [0.94, 1500];
 }
 
 export function updateMusic(heat) {
   if (!live()) return;
-  const name = tuneForNow();
-  if (name !== song.name) switchTo(name);
-  song.layers.drums = G.state === 'countdown' ? 0.25 : 1; // the drums drop back for the countdown
-  song.layers.counter = G.state === 'play' ? Math.min(1, heat) : 0;
-  song.rate = G.sudden ? 1.12 : 1;
   const t = ac.currentTime;
-  if (G.paused) {
-    song.next = Math.max(song.next, t + 0.05);
-    return;
-  }
+  feel(heat, t);
   ambience(t);
-  while (song.next < t + LOOKAHEAD) {
-    play(song.track, song.step, song.next);
-    song.next += stepLen(song.track, song.step);
-    song.step = (song.step + 1) % steps(song.track);
-    if (song.step === 0) song.loop++;
+  // every match opens on a fresh track, under the countdown's build-up
+  if (G.state === 'countdown' && music.state !== 'countdown' && music.order.length > 1) nextTrack();
+  music.state = G.state;
+  if (!music.src) return;
+  const [rate, cutoff] = musicTarget();
+  if (Math.abs(rate - music.rate) > 0.005) {
+    music.rate = rate;
+    music.src.playbackRate.setTargetAtTime(rate, t, 0.6);
   }
-}
-
-// Fades the old tune out and starts `name` from the top.
-function switchTo(name) {
-  const t = ac.currentTime;
-  if (song.gain) {
-    const old = song.gain;
-    old.gain.setTargetAtTime(0.0001, t, 0.25);
-    setTimeout(() => old.disconnect(), 2000);
+  if (Math.abs(cutoff - music.cutoff) > music.cutoff * 0.02) {
+    music.cutoff = cutoff;
+    music.tone.frequency.setTargetAtTime(cutoff, t, G.state === 'countdown' ? 0.05 : 0.25);
   }
-  song.gain = ac.createGain();
-  song.gain.gain.setValueAtTime(0.0001, t);
-  song.gain.gain.setTargetAtTime(1, t + 0.05, 0.3);
-  song.gain.connect(bus.music);
-  song.name = name;
-  song.track = TRACKS[name];
-  song.step = 0;
-  song.loop = 0;
-  song.next = t + 0.1;
-}
-
-// How long sixteenth `i` lasts. With swing the even ones are a little longer and the odd ones shorter.
-function stepLen(track, i) {
-  const base = 60 / track.bpm / 4 / song.rate;
-  return base * (i % 2 === 0 ? 1 + track.swing : 1 - track.swing);
-}
-
-// Bass letters: r = root, 3/5/7 = that chord tone, all an octave below the chord; 8 = the root at the chord's octave.
-const BASS_TONE = { r: 0, 3: 1, 5: 2, 7: 3 };
-
-// Plays sixteenth `i` of a track at audio time `t`: drums, bass, keys, pad, then the melodies.
-function play(track, i, t) {
-  const out = song.gain;
-  const bar = Math.floor(i / 16);
-  const sixteenth = i % 16;
-  const chord = track.chords[bar % track.chords.length];
-  const stepSecs = stepLen(track, 0);
-  // Arrangement: every third pass of a battle theme is a variation. Its first half is a breakdown (quieter drums,
-  // no melody, the counter-melody carries it) and its second half plays the melody an octave up.
-  const variation = track.counter && song.loop % 3 === 2;
-  const breakdown = variation && i < steps(track) / 2;
-
-  // drums: k = kick, s = snare, h = hi-hat
-  const drums = track.drums;
-  const drumVol = song.layers.drums * (breakdown ? 0.55 : 1);
-  if (drumVol > 0.01) {
-    const hatVol = (sixteenth % 4 === 2 ? 0.07 : 0.045) * drumVol;
-    if (seq(drums.k)[sixteenth] === 'x') kick(t, out, 0.5 * drumVol);
-    if (seq(drums.s)[sixteenth] === 'x') snare(t, out, 0.22 * drumVol);
-    if (seq(drums.h)[sixteenth] === 'x') noise(t, 0.03, out, hatVol, 'highpass', 7000);
-  }
-
-  const bass = seq(track.bass)[sixteenth];
-  if (bass !== '.') {
-    const note = bass === '8' ? chord[0] : chord[BASS_TONE[bass]] - 12;
-    osc(t, 'triangle', hz(note), null, stepSecs * 1.6, out, 0.2);
-    osc(t, 'sine', hz(note - 12), null, stepSecs * 1.8, out, 0.16);
-  }
-
-  // keys: a running arpeggio, or off-beat chord stabs
-  if (track.keys === 'arp' && sixteenth % 2 === 0) {
-    keyNote(t, out, chord[(sixteenth / 2) % 4] + 12, stepSecs * 1.5, 0.045);
-  } else if (track.keys === 'stab' && sixteenth % 4 === 2) {
-    for (const n of chord.slice(1)) keyNote(t, out, n + 12, stepSecs * 0.9, 0.025);
-  }
-
-  // pad: one soft chord per bar
-  if (sixteenth === 0 && track.pad) for (const n of chord) padNote(t, out, n + 12, stepSecs * 16, track.pad);
-
-  // melody and counter-melody
-  if (!breakdown) {
-    let lead = track.lead;
-    if (variation) lead = { ...lead, wave: 'triangle', oct: lead.oct + 1, vol: Math.max(lead.vol, 0.07) };
-    line(lead, i, t, out, track, 1);
-  }
-  const counterLevel = breakdown ? 1 : song.layers.counter;
-  if (track.counter && counterLevel > 0.05) line(track.counter, i, t, out, track, counterLevel);
-}
-
-// A melodic part is either written out (notes) or follows the chords: a rhythm of hits, each playing the next chord
-// degree from degs, `oct` octaves above the chord voicing (so it can never clash with the harmony).
-function line(part, i, t, out, track, level) {
-  const bar = Math.floor(i / 16);
-  let note;
-  let len = 1; // in sixteenths
-  if (part.degs) {
-    const rhythm = seq(part.rhythm);
-    const sixteenth = i % 16;
-    if (rhythm[sixteenth] !== 'x') return;
-    while (sixteenth + len < 16 && rhythm[sixteenth + len] !== 'x') len++;
-    // each bar starts three places further along degs
-    const hit = rhythm.slice(0, sixteenth).filter((s) => s === 'x').length + bar * 3;
-    note = track.chords[bar % track.chords.length][part.degs[hit % part.degs.length]] + part.oct * 12;
-  } else {
-    const notes = part.notes;
-    const name = notes[i % notes.length];
-    if (name === '.' || name === '-') return;
-    while (notes[(i + len) % notes.length] === '-' && len < 16) len++;
-    note = midi(name) + part.oct * 12;
-  }
-  const dur = stepLen(track, 0) * len;
-  const f = hz(note);
-  const wetOut = wet(out, 0.25);
-  const tone = ac.createOscillator();
-  const g = env(t, wetOut, part.vol * level, 0.012, dur * 0.95 + 0.08);
-  tone.type = part.wave;
-  tone.frequency.setValueAtTime(f, t);
-  // a little delayed vibrato on held notes
-  if (len >= 3) {
-    const lfo = ac.createOscillator();
-    const depth = ac.createGain();
-    lfo.frequency.value = 5.5;
-    depth.gain.setValueAtTime(0, t);
-    depth.gain.linearRampToValueAtTime(f * 0.012, t + dur * 0.6);
-    lfo.connect(depth).connect(tone.frequency);
-    lfo.start(t);
-    lfo.stop(t + dur + 0.2);
-  }
-  tone.connect(g);
-  tone.start(t);
-  tone.stop(t + dur + 0.2);
-}
-
-// A square-wave key whose filter closes as it fades.
-function keyNote(t, out, note, dur, vol) {
-  const filter = ac.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(3200, t);
-  filter.frequency.exponentialRampToValueAtTime(700, t + dur);
-  filter.connect(wet(out, 0.2));
-  osc(t, 'square', hz(note), null, dur, filter, vol, 0.004);
-}
-
-// One note of the pad: two slightly detuned saws that swell in and out.
-function padNote(t, out, note, dur, vol) {
-  const filter = ac.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 1100;
-  filter.connect(wet(out, 0.5));
-  for (const cents of [-6, 6]) {
-    const saw = ac.createOscillator();
-    const g = ac.createGain();
-    saw.type = 'sawtooth';
-    saw.frequency.value = hz(note);
-    saw.detune.value = cents;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(vol, t + dur * 0.3);
-    g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    saw.connect(g).connect(filter);
-    saw.start(t);
-    saw.stop(t + dur + 0.05);
-  }
-}
-
-function kick(t, out, vol) {
-  osc(t, 'sine', 150, 45, 0.18, out, vol, 0.002, 0.08);
-  noise(t, 0.015, out, vol * 0.3, 'lowpass', 2000);
-}
-
-function snare(t, out, vol) {
-  const wetOut = wet(out, 0.3);
-  noise(t, 0.14, wetOut, vol, 'bandpass', 1900, 0.7);
-  osc(t, 'triangle', 220, 160, 0.08, wetOut, vol * 0.6);
 }
 
 // Ambience: each stage has a quiet bed of its own under the music. Meadow: a breeze and birdsong. Sunset Mesa: wind

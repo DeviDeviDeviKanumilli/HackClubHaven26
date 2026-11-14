@@ -22,6 +22,7 @@ const TYPES = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json',
+  '.mp3': 'audio/mpeg',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
@@ -71,6 +72,11 @@ const server = http.createServer(async (req, res) => {
       tunnelDown: tunnelDown(),
     };
     res.writeHead(200, { 'Content-Type': 'application/json', ...fresh }).end(JSON.stringify(info));
+  } else if (pathname === '/music') {
+    // the soundtrack: whatever mp3s are in public/assets/music
+    const dir = path.join(PUBLIC, 'assets', 'music');
+    const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.mp3')) : [];
+    res.writeHead(200, { 'Content-Type': 'application/json', ...fresh }).end(JSON.stringify(files.sort()));
   } else if (pathname === '/qr.svg') {
     const svg = await QRCode.toString(joinUrl(), { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
     res.writeHead(200, { 'Content-Type': 'image/svg+xml', ...fresh }).end(svg);

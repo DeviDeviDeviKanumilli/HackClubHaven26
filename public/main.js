@@ -104,15 +104,15 @@ function frame(now) {
   updateMusic(heat());
 }
 
-// How tense the match is, 0..1: the counter-melody comes in as damage climbs or someone is on their last life.
+// How tense the match is, 0..1: the music speeds up as damage builds or someone is on their last life.
 function heat() {
   if (G.state !== 'play') return 0;
   if (G.sudden) return 1;
   let hottest = 0;
   for (const p of players.values()) {
     if (!p.inMatch || p.out) continue;
-    const lastLife = p.stocks === 1 ? 0.7 : 0;
-    hottest = Math.max(hottest, p.pct / 130, lastLife);
+    const lastLife = p.stocks === 1 ? 0.75 : 0;
+    hottest = Math.max(hottest, p.pct / 200, lastLife);
   }
   return Math.min(1, hottest);
 }

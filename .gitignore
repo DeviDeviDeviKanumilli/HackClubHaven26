@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 *.log
 .env
+# the soundtrack is other people's tracks: kept out of the public repo
+public/assets/music/
