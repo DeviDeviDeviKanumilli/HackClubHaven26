@@ -6,7 +6,7 @@ controllers, against each other or the CPU.
 
 Seven fighters, three stages, items, stage events (wind, tumbleweeds, snowballs), in a paper cut-out style. The art is
 a set of sprite sheets and the sound effects are synthesised in code. The music is a shuffled playlist of
-phonk tracks, the mp3s in `public/assets/music/` (not in the repo: drop your own in), and it speeds up as a match heats
+phonk tracks, the mp3s in `public/assets/music/` (add or remove any), and it speeds up as a match heats
 up.
 
 ## Run it
