@@ -1,0 +1,21 @@
+{
+  "name": "knockout",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Phone-controlled party platform fighter: big screen arena, phones as controllers",
+  "scripts": {
+    "start": "node server.js",
+    "local": "NO_TUNNEL=1 node server.js",
+    "format": "prettier --write .",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "cloudflared": "^0.7.0",
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "prettier": "3.10.1"
+  }
+}

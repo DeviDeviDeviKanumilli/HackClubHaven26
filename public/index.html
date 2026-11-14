@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Knockout</title>
+    <link rel="preload" href="/assets/fredoka.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/assets/lilita-one.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/host.css" />
+  </head>
+  <body data-state="lobby" data-mode="title">
+    <canvas id="cv"></canvas>
+
+    <div id="logo">KNOCK<span>OUT</span></div>
+
+    <div id="join" class="paper tape">
+      <div class="lbl">Scan to join</div>
+      <img id="qr" alt="QR code to join the game" />
+      <div id="url"></div>
+      <div id="warn"></div>
+    </div>
+
+    <div id="help" class="paper tape">
+      <h3>How to fight</h3>
+      Hits raise your <b>%</b>: the higher, the farther you fly. Knocked off? Your double jump comes back:
+      jump, then up-special to the ledge.<br />
+      <b>Combos</b> when a hit lands, go straight into a jump or a different attack
+      <h3>On your phone</h3>
+      <b>Attack</b> jab, or aim it: side, up, down · hold to charge<br />
+      <b>Special</b> neutral, side, up, down<br />
+      <b>Jump</b> push the stick up, or the button · tap it for a hop<br />
+      <b>Shield</b> hold to block · flick to roll<br />
+      <b>Shield + Attack</b> grab, push to throw
+      <h3>This screen</h3>
+      <kbd>Enter</kbd> start · <kbd>B</kbd>/<kbd>N</kbd> bots · <kbd>T</kbd> stage · <kbd>Esc</kbd> settings ·
+      <kbd>M</kbd> mute · <kbd>⌫</kbd> back<br />
+      Keyboards and controllers join too<br />
+      On a controller, <kbd>Start</kbd> is the menu
+    </div>
+
+    <div id="top">
+      <div id="status" class="paper"><span id="stTxt">Scan to join</span><span id="stageName"></span></div>
+      <div id="sound" class="paper note">Sound is off · click anywhere or press a key</div>
+      <div id="offline" class="paper note">
+        Lost the game server · is <b>npm start</b> still running? Reconnecting…
+      </div>
+    </div>
+    <div id="banner"></div>
+    <div id="feed"></div>
+    <div id="cards"></div>
+    <div id="title">
+      <div class="logo-big">KNOCK<span>OUT</span></div>
+      <div class="tagline">A paper-crafted platform fighter</div>
+      <div class="sheet">
+        <section class="cast">
+          <h4>The fighters <small>7 to choose from</small></h4>
+          <div class="lineup"></div>
+        </section>
+        <section class="joinbox">
+          <h4>Join the fight</h4>
+          <img class="qr2" alt="QR code to join the game" />
+          <p class="how">Scan it with your phone camera<br />or open <b class="url2"></b></p>
+          <p class="sub">
+            2–40 players · no app needed<br /><kbd>B</kbd> adds a bot · <kbd>Backspace</kbd> back<br />
+            controllers join with any button
+          </p>
+        </section>
+      </div>
+    </div>
+    <div id="front">
+      <div class="logo-big">KNOCK<span>OUT</span></div>
+      <div class="tagline">A paper-crafted platform fighter</div>
+      <h2 class="ask">How are you playing?</h2>
+      <div class="modes">
+        <button class="mode paper" data-mode="phones">
+          <span class="eyebrow">Mobile</span>
+          <img class="art" src="/assets/phones.svg" alt="" />
+          <h3>Phones</h3>
+          <p>Everyone plays on their own phone. Scan a code, no app to install.</p>
+          <span class="meta">2–40 players · this screen is the arena</span>
+          <span class="key"><kbd>1</kbd></span>
+        </button>
+        <button class="mode paper" data-mode="keys">
+          <span class="eyebrow">Web</span>
+          <img class="art" src="/assets/keyboard.svg" alt="" />
+          <h3>Keyboard</h3>
+          <p>Play right here in the browser: this keyboard, Xbox-style controllers, and computer fighters.</p>
+          <span class="meta">keyboard, controllers and CPUs · up to 8</span>
+          <span class="key"><kbd>2</kbd></span>
+        </button>
+      </div>
+      <p class="hint">
+        <kbd>←</kbd> <kbd>→</kbd> choose · <kbd>Enter</kbd> play · <kbd>Esc</kbd> settings · on a controller:
+        stick, then
+        <kbd>A</kbd>
+      </p>
+      <div class="cast"></div>
+    </div>
+    <div id="pick">
+      <header>
+        <h2>Choose your fighters</h2>
+        <button class="stage paper" data-do="stage">Stage <b></b> <kbd>T</kbd></button>
+      </header>
+      <div class="roster"></div>
+      <div class="slots"></div>
+      <div class="ribbon" data-do="fight">
+        <span class="sticker">Ready to fight!</span><small>press <kbd>Enter</kbd> or Start</small>
+      </div>
+      <p class="need"></p>
+      <footer>
+        <span>
+          <kbd>B</kbd> add CPU · <kbd>N</kbd> remove CPU · <kbd>V</kbd> CPU level · <kbd>T</kbd> stage ·
+          <kbd>Esc</kbd> settings · <kbd>Backspace</kbd> back
+        </span>
+        <span class="padkeys">
+          Controller: <kbd>Y</kbd> add CPU · <kbd>X</kbd> remove CPU · <kbd>LB</kbd> <kbd>RB</kbd> stage ·
+          <kbd>View</kbd> settings · <kbd>Start</kbd> fight
+        </span>
+      </footer>
+    </div>
+    <div id="results"></div>
+    <div id="menu">
+      <div class="box paper tape">
+        <h2>Paused</h2>
+        <div class="list"></div>
+        <p class="hint">
+          ↑↓ choose · ←→ change · Esc close<br />Controller: stick · <kbd>A</kbd> pick · <kbd>B</kbd> close
+        </p>
+      </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

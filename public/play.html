@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f1e3c8" />
+    <!-- added to the Home Screen, the controller opens full screen (the only way to get full screen on an iPhone) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Knockout" />
+    <link rel="manifest" href="/play.webmanifest" />
+    <link rel="apple-touch-icon" href="/assets/icon-180.png" />
+    <title>Knockout controller</title>
+    <link rel="preload" href="/assets/fredoka.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/assets/lilita-one.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="modulepreload" href="/roster.js" />
+    <link rel="stylesheet" href="/phone.css" />
+  </head>
+  <body>
+    <div id="select">
+      <h1>KNOCK<span>OUT</span></h1>
+      <input
+        id="nm"
+        maxlength="12"
+        placeholder="Your name"
+        autocomplete="off"
+        autocapitalize="words"
+        spellcheck="false"
+        enterkeyhint="done"
+      />
+      <div class="lbl">Pick your fighter</div>
+      <div id="grid"></div>
+      <div id="info" class="paper"></div>
+      <button id="go" class="big-btn">JOIN</button>
+    </div>
+
+    <div id="pad" data-s="lobby">
+      <div id="stickZone">
+        <div id="stickHint">
+          <b>MOVE</b><small>drag anywhere<br />push up to jump</small>
+        </div>
+        <div id="base"><div id="knob"></div></div>
+      </div>
+      <!-- status strip: who you are, your damage and lives, one short line of status; lobby buttons and results fold in below -->
+      <div id="hud" class="paper">
+        <span id="me" class="pic face" aria-hidden="true"></span>
+        <div class="who">
+          <div id="name"></div>
+          <div id="msg">Connecting…</div>
+        </div>
+        <div class="dmg">
+          <div id="pct">0<small>%</small></div>
+          <div id="stocks"></div>
+        </div>
+        <div id="resLine"></div>
+        <div id="lobbyBar">
+          <button class="chip" id="ready">READY?</button>
+        </div>
+      </div>
+      <div id="tools">
+        <button id="swap" class="paper">Fighter</button>
+        <button id="hand" class="paper" aria-label="Swap stick and buttons">⇄</button>
+        <button id="fs" class="paper" aria-label="Full screen" hidden>⛶</button>
+      </div>
+      <div id="ping" aria-hidden="true"></div>
+      <div id="btns">
+        <div class="b" id="bD" data-b="8"><span>SHIELD</span></div>
+        <div class="b" id="bS" data-b="2"><span>SPECIAL</span></div>
+        <div class="b" id="bJ" data-b="4"><span>JUMP</span></div>
+        <div class="b" id="bA" data-b="1">
+          <span>ATTACK<small>hold to charge</small></span>
+        </div>
+      </div>
+      <div id="fsTip" class="paper" role="note">
+        <b>Full screen on iPhone</b>Tap Share
+        <svg class="share" viewBox="0 0 20 24" aria-hidden="true">
+          <path
+            d="M6 9H3v13h14V9h-3M10 15V2M6 6l4-4 4 4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        then <b>Add to Home Screen</b>, and open Knockout from there.<small
+          >The game's link changes each time it restarts, so add it again next game night.</small
+        >
+      </div>
+      <div id="edge"></div>
+    </div>
+
+    <script type="module" src="/phone.js"></script>
+  </body>
+</html>

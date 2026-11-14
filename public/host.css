@@ -1,0 +1,1666 @@
+/* Big screen: HUD cards, join card, help, title card, results, pause menu. */
+/* Fonts are served by the game itself (latin subsets from Google Fonts, SIL Open Font License): no third-party requests. */
+@font-face {
+  font-family: Fredoka;
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url(/assets/fredoka.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Lilita One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/assets/lilita-one.woff2) format('woff2');
+}
+:root {
+  --ink: #2b2340;
+  --paper: #fbf4e6;
+  --dim: #7a6f86;
+  --cast: rgba(43, 35, 64, 0.3);
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .32 0 0 0 0 .26 0 0 0 0 .2 0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --display: 'Lilita One', Fredoka, ui-rounded, system-ui, sans-serif;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #241f45;
+  color: var(--ink);
+  font-family: Fredoka, ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+}
+/* Fighter pictures, cut from the sprite sheets: the fighters across, their four colours down (see picture()). */
+.pic {
+  display: inline-block;
+  aspect-ratio: 1;
+  background: url(assets/faces.webp) no-repeat calc(var(--i) * 100% / 6) calc(var(--alt) * 100% / 3) / 700%
+    400%;
+}
+.pic.poster {
+  aspect-ratio: 4 / 3;
+  background-image: url(assets/posters.webp);
+}
+
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* a piece of card: grain, ink edge, the shadow it casts on the diorama */
+.paper {
+  background: var(--grain), var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 16px 13px 17px 12px;
+  box-shadow: 5px 7px 0 var(--cast);
+}
+.tape::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -12px;
+  width: 74px;
+  height: 22px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: color-mix(in srgb, var(--tapec, #ffd84a) 70%, transparent);
+  border-left: 2px dashed rgba(255, 255, 255, 0.5);
+  border-right: 2px dashed rgba(255, 255, 255, 0.5);
+}
+.sticker {
+  color: #fff;
+  -webkit-text-stroke: 0.14em #fff;
+  paint-order: stroke fill;
+  filter: drop-shadow(2px 0 0 var(--ink)) drop-shadow(-2px 0 0 var(--ink)) drop-shadow(0 2px 0 var(--ink))
+    drop-shadow(0 -2px 0 var(--ink)) drop-shadow(5px 7px 0 var(--cast));
+}
+
+#logo {
+  position: fixed;
+  left: 24px;
+  top: 16px;
+  font-family: var(--display);
+  font-size: 40px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  pointer-events: none;
+  color: #fff8ec;
+  -webkit-text-stroke: 8px var(--ink);
+  paint-order: stroke fill;
+  text-shadow:
+    -3px 2px 0 #3fd0c9,
+    5px 7px 0 var(--cast);
+  transform: rotate(-2deg);
+}
+#logo span {
+  color: #ff6f91;
+}
+
+/* join card: big in the lobby, tucked in the corner during a match */
+#join {
+  position: fixed;
+  left: 24px;
+  top: 78px;
+  width: 250px;
+  padding: 16px 14px 12px;
+  text-align: center;
+  transform: rotate(-1.5deg);
+  transition:
+    width 0.5s,
+    padding 0.5s,
+    opacity 0.5s;
+  transform-origin: 0 0;
+  --tapec: #ff8fae;
+}
+#join .lbl {
+  font-family: var(--display);
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+#qr {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: #fff;
+  display: block;
+  padding: 6px;
+  border: 2px solid var(--ink);
+}
+#url {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+  font-weight: 600;
+}
+#warn {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #c4462e;
+  display: none;
+  font-weight: 600;
+}
+body:not([data-state='lobby']) #join {
+  width: 112px;
+  padding: 9px 8px 7px;
+  opacity: 0.92;
+}
+body:not([data-state='lobby']) #join .lbl {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+body:not([data-state='lobby']) #url,
+body:not([data-state='lobby']) #warn {
+  display: none !important;
+}
+
+#help {
+  position: fixed;
+  left: 24px;
+  top: 440px;
+  transition: opacity 0.4s;
+  width: 250px;
+  padding: 14px 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #4d4458;
+  transform: rotate(0.8deg);
+  --tapec: #7fd3ff;
+}
+#help b {
+  color: var(--ink);
+  font-weight: 600;
+}
+#help h3 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+#help h3:not(:first-of-type) {
+  margin-top: 8px;
+}
+kbd {
+  font-family: inherit;
+  font-weight: 600;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
+  padding: 0 5px;
+  color: var(--ink);
+  box-shadow: 1px 2px 0 var(--cast);
+}
+body:not([data-state='lobby']) #help {
+  display: none;
+}
+@media (max-height: 899px) {
+  #help {
+    display: none;
+  }
+}
+
+#top {
+  position: fixed;
+  top: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+body[data-empty] #top {
+  top: auto;
+  bottom: 14px;
+} /* under the title card, out of the logo's way */
+#status {
+  display: inline-block;
+  padding: 6px 26px 7px;
+  font-family: var(--display);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  border-radius: 10px;
+}
+#status.hot {
+  color: #e2445f;
+  animation: tick 0.5s infinite alternate;
+}
+@keyframes tick {
+  to {
+    transform: scale(1.06) rotate(-1deg);
+  }
+}
+/* browsers keep audio off until someone touches the big screen: say so, quietly, until they do */
+.note {
+  display: none;
+  width: fit-content;
+  margin: 8px auto 0;
+  padding: 4px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--dim);
+  border-radius: 999px;
+  transform: rotate(-1deg);
+}
+.note.show {
+  display: block;
+  animation: soundIn 0.5s ease-out;
+}
+#offline {
+  color: #c2364f;
+  transform: rotate(0.8deg);
+} /* and when the server goes away, say that too */
+@keyframes soundIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) rotate(-1deg);
+  }
+}
+#stageName {
+  display: block;
+  font-family: Fredoka, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--dim);
+  margin-top: -2px;
+}
+#stageName:empty {
+  display: none;
+}
+
+#banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 42%;
+  transform: translateY(-50%);
+  text-align: center;
+  pointer-events: none;
+  font-family: var(--display);
+  font-size: min(12vw, 21vh);
+  line-height: 1;
+  opacity: 0;
+}
+#banner .big {
+  display: inline-block;
+}
+#banner.high {
+  top: 19%;
+}
+#banner small {
+  display: block;
+  font-family: Fredoka, sans-serif;
+  font-weight: 600;
+  font-size: 0.17em;
+  color: var(--ink);
+  margin-top: 0.6em;
+  -webkit-text-stroke: 0;
+  filter: none;
+}
+#banner small span {
+  background: var(--grain), var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 0.15em 0.7em;
+  box-shadow: 4px 5px 0 var(--cast);
+  display: inline-block;
+  transform: rotate(-1deg);
+}
+#banner.show {
+  opacity: 1;
+  animation: pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes stamp {
+  from {
+    transform: scale(0.4) rotate(-12deg);
+    opacity: 0;
+  }
+} /* lands on the element's own transform */
+@keyframes pop {
+  from {
+    transform: translateY(-50%) scale(0.4) rotate(-8deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+}
+#feed {
+  position: fixed;
+  right: 22px;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  pointer-events: none;
+  font-size: 15px;
+  font-weight: 500;
+}
+#feed div {
+  background: var(--grain), var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  padding: 4px 12px;
+  box-shadow: 3px 4px 0 var(--cast);
+  animation: fade 4s forwards;
+}
+#feed div:nth-child(odd) {
+  transform: rotate(-1.2deg);
+}
+#feed div:nth-child(even) {
+  transform: rotate(1deg);
+}
+#feed b {
+  font-weight: 700;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+}
+@keyframes fade {
+  0% {
+    opacity: 0;
+    translate: 20px 0;
+  }
+  6%,
+  80% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* damage cards: paper tags with a strip of washi tape in the player's colour */
+#cards {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--grain), var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 12px 14px 11px 15px;
+  padding: 8px 16px 6px 8px;
+  min-width: 150px;
+  box-shadow: 4px 6px 0 var(--cast);
+}
+.card:nth-child(odd) {
+  transform: rotate(-1.2deg);
+}
+.card:nth-child(even) {
+  transform: rotate(1.1deg);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  width: 56px;
+  height: 18px;
+  transform: translateX(-50%) rotate(-4deg);
+  background: color-mix(in srgb, var(--tag) 78%, transparent);
+}
+.card .pic {
+  width: 56px;
+  height: 56px;
+  flex: none;
+}
+.card .nm {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card .pc {
+  font-family: var(--display);
+  font-size: 38px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-stroke: 7px var(--ink);
+  paint-order: stroke fill;
+  letter-spacing: 0.01em;
+}
+.card.shake {
+  animation: shake 0.32s;
+}
+@keyframes shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  20% {
+    translate: -5px -3px;
+    rotate: -2deg;
+  }
+  40% {
+    translate: 5px 2px;
+    rotate: 2deg;
+  }
+  60% {
+    translate: -3px 1px;
+  }
+  80% {
+    translate: 2px -1px;
+  }
+}
+.card .pc small {
+  font-size: 0.5em;
+}
+.card .st {
+  display: flex;
+  gap: 4px;
+  height: 11px;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c08a00;
+  line-height: 11px;
+}
+.card .st i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tag);
+  border: 1.5px solid var(--ink);
+}
+.card .rd {
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  background: #8fdc7e;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  font-family: var(--display);
+  font-size: 12px;
+  padding: 1px 6px;
+  transform: rotate(8deg);
+  display: none;
+}
+.card.ready .rd {
+  display: block;
+}
+/* in the phone lobby any fighter can be taken out with a click: a bot, a keyboard or controller, an idle phone */
+.card .x {
+  display: none;
+  left: -10px;
+  top: -10px;
+  pointer-events: auto;
+}
+body[data-mode='phones'][data-state='lobby'] .card .x {
+  display: block;
+}
+#cards.small .x,
+#cards.tiny .x {
+  width: 18px;
+  height: 18px;
+  left: -7px;
+  top: -7px;
+  font-size: 13px;
+  border-width: 1.5px;
+}
+.card.out {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+.card.out .pc {
+  font-size: 20px;
+  color: var(--dim) !important;
+}
+#cards.small {
+  gap: 10px;
+}
+#cards.small .card {
+  min-width: 112px;
+  padding: 6px 10px 4px 5px;
+  gap: 5px;
+}
+#cards.small .card .pic {
+  width: 40px;
+  height: 40px;
+}
+#cards.small .card .pc {
+  font-size: 25px;
+  -webkit-text-stroke-width: 5px;
+}
+#cards.small .card .nm {
+  font-size: 12px;
+  max-width: 70px;
+}
+#cards.tiny {
+  gap: 6px;
+}
+#cards.tiny .card {
+  min-width: 0;
+  padding: 4px 8px 3px 4px;
+  gap: 4px;
+  border-radius: 9px;
+  border-width: 2px;
+}
+#cards.tiny .card::before {
+  width: 30px;
+  height: 10px;
+  top: -6px;
+}
+#cards.tiny .card .pic {
+  width: 28px;
+  height: 28px;
+}
+#cards.tiny .card .pc {
+  font-size: 17px;
+  -webkit-text-stroke-width: 4px;
+}
+#cards.tiny .card .nm {
+  font-size: 10px;
+  max-width: 52px;
+}
+#cards.tiny .card .st {
+  height: 6px;
+  margin-top: 2px;
+}
+#cards.tiny .card .st i {
+  width: 6px;
+  height: 6px;
+  border-width: 1px;
+}
+
+/* results: a stack of paper strips, dealt in one by one */
+#moved {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  background: rgba(43, 35, 64, 0.55);
+  z-index: 50;
+}
+#moved.show {
+  display: grid;
+}
+#moved .box {
+  padding: 22px 26px;
+  text-align: center;
+  max-width: 420px;
+  transform: rotate(-1deg);
+}
+#moved h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+#moved p {
+  color: var(--dim);
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+#moved button {
+  font:
+    600 16px Fredoka,
+    sans-serif;
+  padding: 8px 18px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: #ffd84a;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 3px 4px 0 var(--cast);
+}
+#results {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -54%);
+  width: min(860px, 92vw);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+#results.show {
+  opacity: 1;
+}
+#cv {
+  transition: filter 0.5s;
+}
+body:has(#results.show) #cv,
+body:has(#menu.show) #cv {
+  filter: saturate(0.55) brightness(0.78) blur(2px);
+}
+#results h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 64px;
+  color: #ffd84a;
+  margin-bottom: 14px;
+  display: inline-block;
+  transform: rotate(-2deg);
+}
+#results .rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#results .row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px 52px 1fr auto repeat(4, 64px);
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 22px;
+  text-align: left;
+  opacity: 0;
+  transform: translateX(-60px) rotate(-2deg);
+}
+#results.show .row {
+  animation: deal 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+  animation-delay: var(--d);
+}
+#results .row:nth-child(even) {
+  --r: 0.8deg;
+}
+#results .row:nth-child(odd) {
+  --r: -0.6deg;
+}
+@keyframes deal {
+  to {
+    opacity: 1;
+    transform: translateX(0) rotate(var(--r));
+  }
+}
+#results .row::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 16px;
+  height: 70%;
+  transform: translateY(-50%);
+  background: var(--tag);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+}
+#results .pl {
+  font-family: var(--display);
+  font-size: 26px;
+  color: #fff;
+  -webkit-text-stroke: 5px var(--ink);
+  paint-order: stroke fill;
+}
+#results .row:first-child .pl {
+  color: #ffd84a;
+  font-size: 30px;
+}
+/* the winner's row: warmer paper, a thicker ink edge and a strip of washi tape saying so */
+#results .row.win {
+  background: var(--grain), #fff3c4;
+  border-width: 3px;
+  margin: 4px -10px 6px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+#results .row.win::after {
+  content: 'WINNER';
+  position: absolute;
+  right: 18px;
+  top: -13px;
+  padding: 2px 14px;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: rgba(255, 143, 163, 0.88);
+  transform: rotate(2.5deg);
+  clip-path: polygon(
+    0 8%,
+    4% 0,
+    9% 10%,
+    15% 0,
+    22% 9%,
+    30% 0,
+    100% 0,
+    97% 50%,
+    100% 100%,
+    92% 92%,
+    85% 100%,
+    0 100%,
+    3% 50%
+  );
+}
+#results .row.win .pic {
+  width: 58px;
+  height: 58px;
+}
+#results .pic {
+  width: 50px;
+  height: 50px;
+}
+#results .who b {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+}
+#results .who small {
+  font-size: 12px;
+  color: var(--dim);
+  font-weight: 600;
+}
+#results .aw {
+  font-family: var(--display);
+  font-size: 14px;
+  background: #ffd84a;
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  padding: 2px 8px;
+  transform: rotate(-3deg);
+  white-space: nowrap;
+}
+#results .n {
+  text-align: center;
+  font-size: 11px;
+  color: var(--dim);
+  font-weight: 600;
+}
+#results .n b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--ink);
+}
+#results .foot {
+  margin-top: 14px;
+  display: inline-block;
+  font-weight: 600;
+  background: var(--grain), var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  padding: 4px 12px;
+  box-shadow: 3px 4px 0 var(--cast);
+}
+
+/* title card: only on an empty lobby. A logo, then one folded sheet of paper: the cast on the left, how to join on the right. */
+#title {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s;
+  width: min(1120px, 100vw - 48px);
+}
+body[data-empty] #title {
+  opacity: 1;
+}
+#title .logo-big {
+  font-family: var(--display);
+  font-size: clamp(52px, 7.2vw, 104px);
+  line-height: 0.95;
+  color: #fff8ec;
+  letter-spacing: 0.02em;
+  -webkit-text-stroke: 0.09em var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0.04em 0.06em 0 var(--cast);
+  transform: rotate(-1.5deg);
+}
+#title .logo-big span {
+  color: #ff6f91;
+}
+#title .tagline {
+  margin-top: 6px;
+  font-weight: 600;
+  font-size: clamp(15px, 1.4vw, 19px);
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 0 6px #fff8ec,
+    0 0 12px #fff8ec;
+}
+#title .sheet {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0;
+  margin-top: 18px;
+  text-align: left;
+  border-radius: 6px;
+  background:
+    linear-gradient(100deg, transparent 0 66%, rgba(43, 35, 64, 0.07) 66.2%, transparent 69%), var(--grain),
+    var(--paper);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    8px 10px 0 var(--cast);
+  transform: rotate(-0.6deg);
+}
+#title .sheet::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 0 6px 0 0; /* a dog-eared corner */
+  background: linear-gradient(225deg, #e8dcc2 0 50%, rgba(43, 35, 64, 0.18) 50% 54%, transparent 54%);
+}
+#title h4 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+}
+#title h4 small {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dim);
+  margin-left: 8px;
+  letter-spacing: 0;
+  font-family: 'Fredoka', sans-serif;
+}
+#title .cast {
+  padding: 18px 12px 14px 26px;
+}
+#title .lineup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+#title .lineup figure {
+  margin: 0;
+  width: 25%;
+  text-align: center;
+}
+#title .lineup .pic {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: bob 2.4s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+#title figcaption {
+  margin-top: -4px;
+  line-height: 1.1;
+}
+#title .lineup figure:nth-child(-n + 4) {
+  margin-bottom: 8px;
+}
+#title figcaption b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--ink);
+}
+#title figcaption small {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dim);
+}
+#title .joinbox {
+  width: 310px;
+  padding: 18px 26px 18px 24px;
+  border-left: 2px dashed rgba(43, 35, 64, 0.25);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#title .qr2 {
+  display: block;
+  width: 210px;
+  height: 210px;
+  margin: 10px 0 10px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px var(--ink),
+    4px 5px 0 var(--cast);
+}
+#title .how {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.35;
+}
+#title .how b {
+  font-weight: 700;
+  word-break: break-all;
+}
+#title .sub {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+body[data-empty] #banner,
+body[data-empty] #status,
+body[data-empty] #logo,
+body[data-empty] #cards,
+body[data-empty] #feed,
+body[data-empty] #join,
+body[data-empty] #help {
+  opacity: 0;
+}
+body[data-empty] #cv {
+  filter: saturate(0.45) contrast(0.7) brightness(1.06);
+  transition: filter 0.4s;
+} /* the stage steps back behind the title, as on the opening screen */
+
+/* ---------- the title: how are you playing? (ui.js) ---------- */
+#front,
+#pick {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+}
+body[data-mode='title'] #front {
+  display: flex;
+  justify-content: center;
+  gap: clamp(6px, 1.4vh, 16px);
+  padding: 2vh 16px 0;
+}
+#front .logo-big,
+#pick h2 {
+  font-family: var(--display);
+  line-height: 0.95;
+  color: #fff8ec;
+  letter-spacing: 0.02em;
+  -webkit-text-stroke: 0.09em var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0.04em 0.06em 0 var(--cast);
+}
+#front .logo-big {
+  font-size: clamp(48px, min(7.4vw, 12vh), 112px);
+  transform: rotate(-1.5deg);
+}
+#front .logo-big span,
+#title .logo-big span {
+  color: #ff6f91;
+}
+/* the tagline and the question sit on strips of paper, so they read over whatever the stage behind is doing */
+#front .tagline,
+#title .tagline {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 14px;
+  font-weight: 600;
+  font-size: clamp(14px, 1.4vw, 18px);
+  color: var(--ink);
+  background: var(--grain), var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 3px 4px 0 var(--cast);
+  transform: rotate(1deg);
+  text-shadow: none;
+}
+#front .ask {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(20px, 2.2vw, 30px);
+  color: #fff8ec;
+  -webkit-text-stroke: 6px var(--ink);
+  paint-order: stroke fill;
+  margin: 1vh 0 clamp(14px, 2.6vh, 28px);
+}
+#front .modes {
+  display: flex;
+  gap: clamp(16px, 3vw, 44px);
+}
+#front .mode {
+  position: relative;
+  width: clamp(250px, 30vw, 380px);
+  padding: clamp(12px, 2vh, 22px) 22px clamp(12px, 2vh, 20px);
+  font: inherit;
+  color: var(--ink);
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2px, 0.6vh, 6px);
+  transition:
+    transform 0.18s cubic-bezier(0.2, 1.6, 0.4, 1),
+    background 0.15s;
+}
+#front .mode:not(.on) .art {
+  filter: saturate(0.5);
+}
+#front .mode:nth-child(1) {
+  transform: rotate(-1.2deg);
+}
+#front .mode:nth-child(2) {
+  transform: rotate(1deg);
+}
+#front .mode.on {
+  opacity: 1;
+  background: var(--grain), #fff3c4;
+  border-width: 3.5px;
+  box-shadow:
+    0 0 0 5px #fff8ec,
+    0 0 0 8px var(--ink),
+    8px 12px 0 var(--cast);
+  transform: translateY(-6px) scale(1.04) rotate(-0.5deg);
+}
+#front .mode:focus-visible {
+  outline: none;
+}
+#front .eyebrow {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  padding: 2px 16px;
+  font-family: var(--display);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, #ffd84a 82%, transparent);
+  border-left: 2px dashed rgba(255, 255, 255, 0.6);
+  border-right: 2px dashed rgba(255, 255, 255, 0.6);
+}
+#front .mode[data-mode='keys'] .eyebrow {
+  background: color-mix(in srgb, #7fd3ff 82%, transparent);
+}
+#front .art {
+  width: 72%;
+  height: auto;
+  margin: 6px 0 2px;
+  max-height: 15vh;
+}
+#front h3 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(26px, 2.8vw, 38px);
+  line-height: 1;
+}
+#front .mode p {
+  font-size: clamp(13px, 1.15vw, 16px);
+  font-weight: 500;
+  line-height: 1.35;
+  color: #4d4458;
+  max-width: 30ch;
+}
+#front .meta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dim);
+}
+#front .key {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  font-size: 13px;
+}
+#front .hint {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 3px 14px;
+  background: var(--grain), var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 3px 4px 0 var(--cast);
+  margin-top: 6px;
+}
+#front .cast {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  margin-top: auto;
+  pointer-events: none;
+}
+#front .cast .pic {
+  height: clamp(64px, 14vh, 150px);
+  width: auto;
+  margin: 0 -1.2vw;
+  animation: bob 2.4s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+
+/* ---------- keyboard play: choose your fighters (ui.js) ---------- */
+body[data-mode='keys'][data-state='lobby']:not(:has(#menu.show)) #pick {
+  display: flex;
+  gap: clamp(8px, 1.6vh, 18px);
+  padding: clamp(10px, 2.2vh, 26px) 2.5vw clamp(8px, 1.4vh, 16px);
+}
+#pick header {
+  width: min(1240px, 100%);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+#pick h2 {
+  font-weight: 400;
+  font-size: clamp(30px, min(3.6vw, 6vh), 52px);
+  transform: rotate(-1deg);
+}
+#pick .stage {
+  font:
+    600 15px Fredoka,
+    sans-serif;
+  color: var(--dim);
+  padding: 6px 14px;
+  cursor: pointer;
+  transform: rotate(1deg);
+}
+#pick .stage b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--ink);
+  margin: 0 4px;
+}
+#pick .roster {
+  display: flex;
+  justify-content: center;
+  gap: clamp(6px, 1vw, 14px);
+  order: 1;
+}
+#pick .ftile {
+  position: relative;
+  width: clamp(92px, 11.4vw, 158px);
+  padding: 4px 4px 6px;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  background: var(--grain), var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 4px 5px 0 var(--cast);
+  transition: transform 0.15s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+#pick .ftile:nth-child(odd) {
+  transform: rotate(-1deg);
+}
+#pick .ftile:nth-child(even) {
+  transform: rotate(1deg);
+}
+#pick .ftile .pic {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: -4px;
+}
+#pick .ftile b {
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(16px, 1.5vw, 21px);
+  line-height: 1;
+}
+#pick .ftile small {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--dim);
+}
+#pick .ftile.on {
+  transform: translateY(-5px) scale(1.06);
+  border-color: var(--ink);
+  box-shadow:
+    0 0 0 4px var(--tag),
+    4px 8px 0 var(--cast);
+  z-index: 1;
+}
+#pick .curs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -13px;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+#pick .curs i {
+  font-style: normal;
+  font-family: var(--display);
+  font-size: 14px;
+  padding: 1px 8px;
+  color: var(--ink);
+  background: var(--tag);
+  border: 2px solid var(--ink);
+  border-radius: 7px;
+  box-shadow: 2px 3px 0 var(--cast);
+}
+#pick .curs i.lock {
+  animation: stamp 0.3s cubic-bezier(0.2, 1.6, 0.4, 1);
+  transform: none;
+}
+/* a band of paper across the screen under the cards once everyone has locked in */
+#pick .ribbon {
+  order: 4;
+  width: calc(100% + 5vw + 8px);
+  display: none;
+  cursor: pointer;
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+  height: clamp(46px, 8vh, 76px);
+  background: #ff6f91;
+  border-block: 3px solid var(--ink);
+  box-shadow: 0 8px 0 var(--cast);
+  transform: rotate(-1.5deg);
+  animation: ribbonIn 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+#pick.go .ribbon {
+  display: flex;
+}
+#pick .ribbon span {
+  font-family: var(--display);
+  font-size: clamp(30px, 5vh, 54px);
+  color: #fff8ec;
+  -webkit-text-stroke: 7px var(--ink);
+  filter: none;
+}
+#pick .ribbon small {
+  font-weight: 600;
+  font-size: 15px;
+  padding: 2px 12px;
+  background: var(--grain), var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  white-space: nowrap;
+  transform: rotate(2deg);
+}
+@keyframes ribbonIn {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+#pick .slots {
+  order: 3;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: clamp(8px, 1.2vw, 16px);
+  width: 100%;
+  margin-top: clamp(14px, 2.4vh, 26px);
+}
+.slot {
+  position: relative;
+  width: clamp(128px, 13.6vw, 210px);
+  padding: 12px 10px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.slot::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  width: 64px;
+  height: 20px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: color-mix(in srgb, var(--tag, #ccc) 80%, transparent);
+}
+.slot:nth-child(odd) {
+  transform: rotate(-0.8deg);
+}
+.slot:nth-child(even) {
+  transform: rotate(0.9deg);
+}
+.slot .who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+}
+.slot .who b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1;
+}
+.slot .who span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
+}
+.slot .who em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c08a00;
+}
+.slot .art {
+  display: block;
+  width: min(100%, 20vh); /* 15vh tall */
+  margin: 0 auto;
+}
+.slot .fn {
+  font-family: var(--display);
+  font-size: clamp(19px, 1.7vw, 24px);
+  line-height: 1;
+}
+.slot .fn small {
+  display: block;
+  font-family: Fredoka, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
+  margin-top: 2px;
+}
+.slot .state kbd {
+  font-size: 11px;
+}
+.slot .state {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
+  margin-top: 4px;
+}
+.slot .state.rdy {
+  font-family: var(--display);
+  font-size: 20px;
+  color: var(--ink);
+  background: #8fdc7e;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 0 10px;
+  transform: rotate(-4deg);
+  animation: stamp 0.3s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.slot .undo {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--dim);
+}
+.slot .ctl {
+  list-style: none;
+  padding: 6px 0 0;
+  margin-top: 4px;
+  border-top: 2px dashed rgba(43, 35, 64, 0.2);
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4d4458;
+}
+.slot .ctl li {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+.slot .ctl li:first-child {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+.slot .ctl kbd {
+  font-size: 11px;
+  padding: 0 4px;
+}
+/* the × that takes a fighter out, for the mouse (keys and controller buttons do the same) */
+.slot .x,
+.card .x {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font:
+    700 18px/1 system-ui,
+    sans-serif;
+  color: var(--dim);
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 1px 2px 0 var(--cast);
+  cursor: pointer;
+}
+.slot .x {
+  top: -10px;
+  right: -10px;
+}
+.slot .x:hover,
+.slot .x:focus-visible,
+.card .x:hover,
+.card .x:focus-visible {
+  color: #fff;
+  background: #e2536b;
+}
+.slot.ready {
+  background: var(--grain), #fff3c4;
+}
+.slot.cpu {
+  cursor: pointer;
+}
+.slot.cpu .who span {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.slot.open {
+  justify-content: center;
+  min-height: 150px;
+  background: rgba(251, 244, 230, 0.82);
+  border: 2.5px dashed var(--ink);
+  border-radius: 14px;
+  cursor: pointer;
+  color: var(--ink);
+  gap: 8px;
+}
+.slot.open::before {
+  display: none;
+}
+.slot.open b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 26px;
+}
+.slot.open p {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.slot.open small {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--dim);
+}
+#pick .need {
+  order: 5;
+  min-height: 1.4em;
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff8ec;
+  -webkit-text-stroke: 4px var(--ink);
+  paint-order: stroke fill;
+}
+#pick .need:empty {
+  visibility: hidden;
+}
+#pick .need.nudge {
+  animation: shake 0.4s;
+}
+#pick footer {
+  order: 6;
+  margin-top: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+  padding: 4px 14px;
+  background: var(--grain), var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 3px 4px 0 var(--cast);
+  text-align: center;
+  line-height: 1.7;
+}
+#pick footer span {
+  display: block;
+}
+#pick footer .padkeys {
+  display: none;
+}
+#pick.pads footer {
+  border-radius: 20px;
+}
+#pick.pads footer .padkeys {
+  display: block;
+}
+@media (max-height: 700px) {
+  .slot .art {
+    width: min(100%, 14.7vh);
+  }
+  #front .art {
+    max-height: 11vh;
+  }
+}
+
+/* what each screen hides: the title and the keyboard select have their own cards, and keyboard play has no join code */
+body[data-mode='title'] :is(#banner, #status, #logo, #cards, #feed, #join, #help, #title),
+body[data-mode='keys'][data-state='lobby'] :is(#banner, #status, #logo, #cards, #feed, #title),
+body[data-mode='keys'] :is(#join, #help) {
+  display: none !important;
+}
+body[data-mode='keys'][data-state='lobby'] #top {
+  top: auto;
+  bottom: 10px;
+}
+body[data-mode='title'] #top {
+  left: auto;
+  right: 16px;
+} /* top right, clear of the logo and the cast */
+body[data-mode='title'] #cv {
+  filter: saturate(0.45) contrast(0.7) brightness(1.06);
+} /* the stage fades back like a print behind the cards */
+body[data-mode='keys'][data-state='lobby'] #cv {
+  filter: saturate(0.5) brightness(0.68) blur(3px);
+} /* the stage waits out of focus behind the cards */
+
+/* pause menu */
+#menu {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(43, 35, 64, 0.45);
+}
+#menu.show {
+  display: flex;
+}
+#menu .box {
+  position: relative;
+  width: min(440px, 90vw);
+  padding: 22px 20px 14px;
+  --tapec: #b693ff;
+  transform: rotate(-1deg);
+}
+#menu h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 40px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+#menu .list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* a lobby has more rows than a short screen can show: the list scrolls and the title and hint stay put */
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  padding: 2px 6px 6px 2px;
+}
+.mrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 7px 12px;
+  flex: none;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.mrow b {
+  font-family: var(--display);
+  font-weight: 400;
+}
+.mrow.on {
+  border-color: var(--ink);
+  background: #fff;
+  box-shadow: 3px 4px 0 var(--cast);
+}
+#menu .hint {
+  text-align: center;
+  color: var(--dim);
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  #help {
+    display: none;
+  }
+  #join {
+    width: 150px;
+  }
+  #logo {
+    font-size: 28px;
+  }
+}
+
+/* Reduced motion: keep every state change, drop the movement (the canvas side lowers shake by default too). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
