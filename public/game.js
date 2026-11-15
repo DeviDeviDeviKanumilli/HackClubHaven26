@@ -44,6 +44,8 @@ export const $ = (s) => document.querySelector(s);
 export const TAU = Math.PI * 2;
 const DEG = Math.PI / 180;
 export const params = new URLSearchParams(location.search);
+// The itch.io build (npm run itch): there's no server.js behind it, so no phones, no join link and no music.
+export const OFFLINE = 'offline' in document.documentElement.dataset;
 
 // Simulation randomness can be seeded (?seed=N) so debug captures are reproducible. Seeded, it is the
 // standard mulberry32 generator.

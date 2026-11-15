@@ -81,3 +81,7 @@ the top of test.js.
 
 Handy URL flags for the big screen: `?mode=keys|phones`, `?bots=4`, `&go`, `&seed=7`, `&stage=mesa`, `&ff=20`
 (fast-forward), `&until=ko` (stop after an event), `&freeze`. `/play?demo` opens the phone pad without a game.
+
+## Tools
+
+We used LLMs on this. Some of the code was generated, and some of it was autocomplete while writing.

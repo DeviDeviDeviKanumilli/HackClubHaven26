@@ -13,6 +13,7 @@ import {
   G,
   mix,
   nextStage,
+  OFFLINE,
   PAD,
   params,
   players,
@@ -560,6 +561,7 @@ let titleChoice = load('ko-mode') === 'keys' ? 1 : 0; // the title remembers the
 // The mode the page opens in: the title (null), unless the URL says otherwise. Debug and test URLs (?bots, ?go) open
 // the phone lobby; ?mode=phones|keys opens either directly.
 export function firstMode() {
+  if (OFFLINE) return 'keys'; // phones need the server
   const asked = params.get('mode');
   if (MODES.includes(asked)) return asked;
   return params.has('bots') || params.has('go') ? 'phones' : null;
@@ -567,6 +569,7 @@ export function firstMode() {
 
 // `first` is who opened it: the keyboard's P1 seat, or a controller's id.
 export function setMode(mode, first = P1) {
+  if (OFFLINE && !mode) mode = 'keys'; // no title to go back to: the select starts over
   G.mode = mode;
   G.hudDirty = true;
   document.body.dataset.mode = mode || 'title';

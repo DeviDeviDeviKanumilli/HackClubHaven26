@@ -8,6 +8,7 @@ import {
   changeChar,
   fighterAfter,
   G,
+  OFFLINE,
   PAD,
   players,
   randomFighter,
@@ -65,6 +66,7 @@ export function tellHud(p) {
 }
 
 export function connect() {
+  if (OFFLINE) return;
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
   ws = new WebSocket(`${scheme}://${location.host}`);
   ws.onopen = () => {
@@ -127,6 +129,7 @@ function onMessage(e) {
 // server never leaves a dead QR code on screen.
 let infoTimer = 0;
 export async function loadInfo() {
+  if (OFFLINE) return;
   clearTimeout(infoTimer);
   let wait = 2000;
   try {

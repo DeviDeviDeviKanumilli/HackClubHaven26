@@ -1,7 +1,7 @@
 // Sound effects, the soundtrack and controller rumble. Everything is synthesised (there are no audio files) and goes
 // through a small mixing desk: music and effects buses, a reverb send, ducking and a master compressor. Audio starts
 // on the first key or click.
-import { G, SETTINGS, shakeK } from './game.js';
+import { G, OFFLINE, SETTINGS, shakeK } from './game.js';
 
 export let ac = null;
 const bus = {}; // master, music, duck, fx, verb
@@ -515,6 +515,7 @@ const music = {
 
 // Fetches the list and starts the first track. Called once sound is allowed.
 async function startMusic() {
+  if (OFFLINE) return;
   try {
     music.list = await (await fetch('/music')).json();
   } catch {
